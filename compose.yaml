@@ -88,22 +88,25 @@ services:
 
   p-stream:
     restart: unless-stopped
-    build:
-      context: ${FRONTEND_REPOSITORY}
-      args:
-        APP_DOMAIN: http://localhost:80
-        PWA_ENABLED: true
-        OPENSEARCH_ENABLED: false
-        NORMAL_ROUTER: true
-        HAS_ONBOARDING: false
-        HIDE_PROXY_ONBOARDING: true
-        ALLOW_AUTOPLAY: false
-        ALLOW_DEBRID_KEY: false
-        ALLOW_FEBBOX_KEY: false
-        BACKEND_URL: ${REVERSE_PROXY_HOST_SCHEME}://${REVERSE_PROXY_HOST}:${REVERSE_PROXY_PORT}${BACKEND_PATH}
-        CORS_PROXY_URL: ${REVERSE_PROXY_HOST_SCHEME}://${REVERSE_PROXY_HOST}:${REVERSE_PROXY_PORT}${PROXY_PATH}
-        M3U8_PROXY_URL: ${REVERSE_PROXY_HOST_SCHEME}://${REVERSE_PROXY_HOST}:${REVERSE_PROXY_PORT}${PROXY_PATH}
-        TMDB_READ_API_KEY: ${SECRETS_FRONTEND_TMDB_READ_ACCESS_TOKEN}
+    image: ${FRONTEND_IMAGE}
+    healthcheck:
+      test: curl -f http://localhost:80
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    environment:
+      APP_DOMAIN: http://localhost:80
+      OPENSEARCH_ENABLED: false
+      NORMAL_ROUTER: true
+      HAS_ONBOARDING: false
+      HIDE_PROXY_ONBOARDING: true
+      ALLOW_AUTOPLAY: false
+      ALLOW_DEBRID_KEY: false
+      ALLOW_FEBBOX_KEY: false
+      BACKEND_URL: ${REVERSE_PROXY_HOST_SCHEME}://${REVERSE_PROXY_HOST}:${REVERSE_PROXY_PORT}${BACKEND_PATH}
+      CORS_PROXY_URL: ${REVERSE_PROXY_HOST_SCHEME}://${REVERSE_PROXY_HOST}:${REVERSE_PROXY_PORT}${PROXY_PATH}
+      M3U8_PROXY_URL: ${REVERSE_PROXY_HOST_SCHEME}://${REVERSE_PROXY_HOST}:${REVERSE_PROXY_PORT}${PROXY_PATH}
+      TMDB_READ_API_KEY: ${SECRETS_FRONTEND_TMDB_READ_ACCESS_TOKEN}
     labels:
       traefik.enable: true
       traefik.http.middlewares.frontend.errors.status: 404
@@ -120,10 +123,21 @@ services:
     depends_on:
       reverse-proxy:
         condition: service_healthy
+      p-stream-backend:
+        condition: service_healthy
+      p-stream-proxy:
+        condition: service_healthy
+      p-stream-hls-downloader:
+        condition: service_healthy
 
   p-stream-backend:
     restart: unless-stopped
     image: ${BACKEND_IMAGE}
+    healthcheck:
+      test: curl -f http://localhost:3000
+      interval: 10s
+      timeout: 10s
+      retries: 10
     environment:
       DATABASE_URL: "postgresql://${BACKEND_DATABASE_USER}:${SECRETS_BACKEND_DATABASE_PASSWORD}@p-stream-backend-database:5432/${BACKEND_DATABASE_NAME}"
       META_NAME: Backend
@@ -171,6 +185,11 @@ services:
   p-stream-proxy:
     restart: unless-stopped
     image: ${PROXY_IMAGE}
+    healthcheck:
+      test: wget --spider -nv -t1 http://localhost:3000 || exit 1
+      interval: 10s
+      timeout: 10s
+      retries: 10
     environment:
       ENABLE_CACHE: false
     labels:
@@ -191,6 +210,11 @@ services:
   p-stream-hls-downloader:
     restart: unless-stopped
     image: ${HLS_DOWNLOADER_IMAGE}
+    healthcheck:
+      test: wget --spider -nv -t1 http://localhost:80 || exit 1
+      interval: 10s
+      timeout: 10s
+      retries: 10
     labels:
       traefik.enable: true
       traefik.http.middlewares.hls-downloader.stripprefix.prefixes: ${HLS_DOWNLOADER_PATH}
