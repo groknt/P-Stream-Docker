@@ -145,8 +145,6 @@ services:
       CAPTCHA: false
       CRYPTO_SECRET: "${SECRET_BACKEND_CRYPTO_SECRET}"
       TMDB_API_KEY: ${SECRET_BACKEND_TMDB_API_KEY}
-      TRAKT_CLIENT_ID: ${SECRET_BACKEND_TRAKT_CLIENT_ID}
-      TRAKT_SECRET_ID: ${SECRET_BACKEND_TRAKT_CLIENT_SECRET}
     labels:
       traefik.enable: true
       traefik.http.middlewares.backend.stripprefix.prefixes: ${BACKEND_PATH}
