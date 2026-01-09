@@ -176,12 +176,30 @@ services:
     labels:
       traefik.enable: true
       traefik.http.middlewares.proxy.stripprefix.prefixes: ${PROXY_PATH}
-      traefik.http.routers.proxy.rule: Host(`${REVERSE_PROXY_HOST}`) && PathPrefix(`${PROXY_PATH}`)
+      traefik.http.routers.proxy.rule: Host(`${REVERSE_PROXY_HOST}`) && (PathPrefix(`${PROXY_PATH}`) || PathPrefix(`${M3U8_PROXY_PATH}`) || PathPrefix(`${TS_PROXY_PATH}`))
       traefik.http.routers.proxy.service: proxy
       traefik.http.routers.proxy.entrypoints: http
       traefik.http.routers.proxy.middlewares: proxy@docker
       traefik.http.routers.proxy.priority: 2
       traefik.http.services.proxy.loadbalancer.server.port: 3000
+    networks:
+      - reverse-proxy
+    depends_on:
+      reverse-proxy:
+        condition: service_healthy
+
+  p-stream-hls-downloader:
+    restart: unless-stopped
+    image: ${HLS_DOWNLOADER_IMAGE}
+    labels:
+      traefik.enable: true
+      traefik.http.middlewares.hls-downloader.stripprefix.prefixes: ${HLS_DOWNLOADER_PATH}
+      traefik.http.routers.hls-downloader.rule: Host(`${REVERSE_PROXY_HOST}`) && PathPrefix(`${HLS_DOWNLOADER_PATH}`)
+      traefik.http.routers.hls-downloader.service: hls-downloader
+      traefik.http.routers.hls-downloader.entrypoints: http
+      traefik.http.routers.hls-downloader.middlewares: hls-downloader@docker
+      traefik.http.routers.hls-downloader.priority: 2
+      traefik.http.services.hls-downloader.loadbalancer.server.port: 80
     networks:
       - reverse-proxy
     depends_on:
