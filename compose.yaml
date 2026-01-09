@@ -172,7 +172,7 @@ services:
     restart: unless-stopped
     image: ${PROXY_IMAGE}
     environment:
-      ENABLE_CACHE: true
+      ENABLE_CACHE: false
     labels:
       traefik.enable: true
       traefik.http.middlewares.proxy.stripprefix.prefixes: ${PROXY_PATH}
