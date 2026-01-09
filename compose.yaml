@@ -106,7 +106,8 @@ services:
       BACKEND_URL: ${REVERSE_PROXY_HOST_SCHEME}://${REVERSE_PROXY_HOST}:${REVERSE_PROXY_PORT}${BACKEND_PATH}
       CORS_PROXY_URL: ${REVERSE_PROXY_HOST_SCHEME}://${REVERSE_PROXY_HOST}:${REVERSE_PROXY_PORT}${PROXY_PATH}
       M3U8_PROXY_URL: ${REVERSE_PROXY_HOST_SCHEME}://${REVERSE_PROXY_HOST}:${REVERSE_PROXY_PORT}${PROXY_PATH}
-      TMDB_READ_API_KEY: ${SECRETS_FRONTEND_TMDB_READ_ACCESS_TOKEN}
+      HLS_DOWNLOADER_URL: ${REVERSE_PROXY_HOST_SCHEME}://${REVERSE_PROXY_HOST}:${REVERSE_PROXY_PORT}${HLS_DOWNLOADER_PATH}/
+      TMDB_READ_API_KEY: ${SECRET_FRONTEND_TMDB_READ_ACCESS_TOKEN}
     labels:
       traefik.enable: true
       traefik.http.middlewares.frontend.errors.status: 404
@@ -139,13 +140,13 @@ services:
       timeout: 10s
       retries: 10
     environment:
-      DATABASE_URL: "postgresql://${BACKEND_DATABASE_USER}:${SECRETS_BACKEND_DATABASE_PASSWORD}@p-stream-backend-database:5432/${BACKEND_DATABASE_NAME}"
+      DATABASE_URL: "postgresql://${BACKEND_DATABASE_USER}:${SECRET_BACKEND_DATABASE_PASSWORD}@p-stream-backend-database:5432/${BACKEND_DATABASE_NAME}"
       META_NAME: Backend
       CAPTCHA: false
-      CRYPTO_SECRET: "${SECRETS_BACKEND_CRYPTO_SECRET}"
-      TMDB_API_KEY: ${SECRETS_BACKEND_TMDB_API_KEY}
-      TRAKT_CLIENT_ID: ${SECRETS_BACKEND_TRAKT_CLIENT_ID}
-      TRAKT_SECRET_ID: ${SECRETS_BACKEND_TRAKT_CLIENT_SECRET}
+      CRYPTO_SECRET: "${SECRET_BACKEND_CRYPTO_SECRET}"
+      TMDB_API_KEY: ${SECRET_BACKEND_TMDB_API_KEY}
+      TRAKT_CLIENT_ID: ${SECRET_BACKEND_TRAKT_CLIENT_ID}
+      TRAKT_SECRET_ID: ${SECRET_BACKEND_TRAKT_CLIENT_SECRET}
     labels:
       traefik.enable: true
       traefik.http.middlewares.backend.stripprefix.prefixes: ${BACKEND_PATH}
@@ -180,13 +181,13 @@ services:
       PGDATA: /var/lib/postgresql/data
       POSTGRES_DB: ${BACKEND_DATABASE_NAME}
       POSTGRES_USER: ${BACKEND_DATABASE_USER}
-      POSTGRES_PASSWORD: "${SECRETS_BACKEND_DATABASE_PASSWORD}"
+      POSTGRES_PASSWORD: "${SECRET_BACKEND_DATABASE_PASSWORD}"
 
   p-stream-proxy:
     restart: unless-stopped
     image: ${PROXY_IMAGE}
     healthcheck:
-      test: wget --spider -nv -t1 http://localhost:3000 || exit 1
+      test: curl -f http://localhost:3000
       interval: 10s
       timeout: 10s
       retries: 10
@@ -211,7 +212,7 @@ services:
     restart: unless-stopped
     image: ${HLS_DOWNLOADER_IMAGE}
     healthcheck:
-      test: wget --spider -nv -t1 http://localhost:80 || exit 1
+      test: curl -f http://localhost:80
       interval: 10s
       timeout: 10s
       retries: 10
