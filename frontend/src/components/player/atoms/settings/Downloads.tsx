@@ -224,22 +224,6 @@ export function DownloadView({ id }: { id: string }) {
             </div>
           ) : (
             <>
-              <Menu.ChevronLink onClick={() => router.navigate("/download/pc")}>
-                {t("player.menus.downloads.onPc.title")}
-              </Menu.ChevronLink>
-              <Menu.ChevronLink
-                onClick={() => router.navigate("/download/ios")}
-              >
-                {t("player.menus.downloads.onIos.title")}
-              </Menu.ChevronLink>
-              <Menu.ChevronLink
-                onClick={() => router.navigate("/download/android")}
-              >
-                {t("player.menus.downloads.onAndroid.title")}
-              </Menu.ChevronLink>
-
-              <Menu.Divider />
-
               <PlayerDropdown
                 options={playerOptions}
                 onSelectOption={openInExternalPlayer}
