@@ -6,10 +6,9 @@
 
 The following services are included and configured:
 
-- [P-Stream](https://github.com/groknt/P-Stream)
-- [P-Stream Backend](https://github.com/groknt/P-Stream-Backend) + Postgres Database
-- [P-Stream Proxy](https://github.com/groknt/P-Stream-Proxy), dependant on [P-Stream Providers](https://github.com/groknt/P-Stream-Providers)
-- [P-Stream HLS Downloader](https://github.com/groknt/P-Stream-HLS-Downloader)
+- [Frontend](./frontend), dependant on [Providers](./providers)
+- [Backend](./backend) + Postgres Database
+- [AIO Proxy](https://github.com/groknt/AIO-Proxy)
 - Traefik Reverse Proxy
 
 To run P-Stream, ensure [Docker](https://docs.docker.com/engine/install) and Docker Compose are installed and run the following command:

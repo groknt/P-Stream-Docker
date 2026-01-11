@@ -1,0 +1,10 @@
+services:
+  p-stream:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+
+  p-stream-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile

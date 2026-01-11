@@ -48,6 +48,10 @@ configs:
         http:
           address: :80/tcp
           asDefault: true
+          forwardedHeaders:
+            trustedIPs:
+              - "127.0.0.1/32"
+              - "172.16.0.0/12"
           <<: *http
 
   reverse-proxy-dynamic:
@@ -104,9 +108,7 @@ services:
       ALLOW_DEBRID_KEY: false
       ALLOW_FEBBOX_KEY: false
       BACKEND_URL: ${REVERSE_PROXY_HOST_SCHEME}://${REVERSE_PROXY_HOST}:${REVERSE_PROXY_PORT}${BACKEND_PATH}
-      CORS_PROXY_URL: ${REVERSE_PROXY_HOST_SCHEME}://${REVERSE_PROXY_HOST}:${REVERSE_PROXY_PORT}${PROXY_PATH}
-      M3U8_PROXY_URL: ${REVERSE_PROXY_HOST_SCHEME}://${REVERSE_PROXY_HOST}:${REVERSE_PROXY_PORT}${PROXY_PATH}
-      HLS_DOWNLOADER_URL: ${REVERSE_PROXY_HOST_SCHEME}://${REVERSE_PROXY_HOST}:${REVERSE_PROXY_PORT}${HLS_DOWNLOADER_PATH}/
+      AIO_PROXY_URL: ${REVERSE_PROXY_HOST_SCHEME}://${REVERSE_PROXY_HOST}:${REVERSE_PROXY_PORT}${AIO_PROXY_PATH}
       TMDB_READ_API_KEY: ${SECRET_FRONTEND_TMDB_READ_ACCESS_TOKEN}
     labels:
       traefik.enable: true
@@ -126,9 +128,7 @@ services:
         condition: service_healthy
       p-stream-backend:
         condition: service_healthy
-      p-stream-proxy:
-        condition: service_healthy
-      p-stream-hls-downloader:
+      aio-proxy:
         condition: service_healthy
 
   p-stream-backend:
@@ -181,48 +181,33 @@ services:
       POSTGRES_USER: ${BACKEND_DATABASE_USER}
       POSTGRES_PASSWORD: "${SECRET_BACKEND_DATABASE_PASSWORD}"
 
-  p-stream-proxy:
+  aio-proxy:
     restart: unless-stopped
-    image: ${PROXY_IMAGE}
-    healthcheck:
-      test: curl -f http://localhost:3000
-      interval: 10s
-      timeout: 10s
-      retries: 10
-    environment:
-      ENABLE_CACHE: false
-    labels:
-      traefik.enable: true
-      traefik.http.middlewares.proxy.stripprefix.prefixes: ${PROXY_PATH}
-      traefik.http.routers.proxy.rule: Host(`${REVERSE_PROXY_HOST}`) && (PathPrefix(`${PROXY_PATH}`) || PathPrefix(`${M3U8_PROXY_PATH}`) || PathPrefix(`${TS_PROXY_PATH}`))
-      traefik.http.routers.proxy.service: proxy
-      traefik.http.routers.proxy.entrypoints: http
-      traefik.http.routers.proxy.middlewares: proxy@docker
-      traefik.http.routers.proxy.priority: 2
-      traefik.http.services.proxy.loadbalancer.server.port: 3000
-    networks:
-      - reverse-proxy
-    depends_on:
-      reverse-proxy:
-        condition: service_healthy
-
-  p-stream-hls-downloader:
-    restart: unless-stopped
-    image: ${HLS_DOWNLOADER_IMAGE}
+    image: ${AIO_PROXY_IMAGE}
     healthcheck:
       test: curl -f http://localhost:80
       interval: 10s
       timeout: 10s
       retries: 10
+    environment:
+      PORT: 80
+      BASE_URL: ${REVERSE_PROXY_HOST_SCHEME}://${REVERSE_PROXY_HOST}:${REVERSE_PROXY_PORT}${AIO_PROXY_PATH}
+      LOG_LEVEL: warn
+      TRUSTED_PROXIES: 127.0.0.1/32,172.16.0.0/12
+      MAX_BANDWIDTH_PER_IP: 20M
+      MAX_STREAMS_PER_IP: 4
+      MAX_TRANSCODE_PER_IP: 4
+      API_RATE_LIMIT: 240
+      ENABLE_YTDLP: false
     labels:
       traefik.enable: true
-      traefik.http.middlewares.hls-downloader.stripprefix.prefixes: ${HLS_DOWNLOADER_PATH}
-      traefik.http.routers.hls-downloader.rule: Host(`${REVERSE_PROXY_HOST}`) && PathPrefix(`${HLS_DOWNLOADER_PATH}`)
-      traefik.http.routers.hls-downloader.service: hls-downloader
-      traefik.http.routers.hls-downloader.entrypoints: http
-      traefik.http.routers.hls-downloader.middlewares: hls-downloader@docker
-      traefik.http.routers.hls-downloader.priority: 2
-      traefik.http.services.hls-downloader.loadbalancer.server.port: 80
+      traefik.http.middlewares.aio-proxy.stripprefix.prefixes: ${AIO_PROXY_PATH}
+      traefik.http.routers.aio-proxy.rule: Host(`${REVERSE_PROXY_HOST}`) && PathPrefix(`${AIO_PROXY_PATH}`)
+      traefik.http.routers.aio-proxy.service: aio-proxy
+      traefik.http.routers.aio-proxy.entrypoints: http
+      traefik.http.routers.aio-proxy.middlewares: aio-proxy@docker
+      traefik.http.routers.aio-proxy.priority: 2
+      traefik.http.services.aio-proxy.loadbalancer.server.port: 80
     networks:
       - reverse-proxy
     depends_on:
