@@ -14,7 +14,7 @@ The following services are included and configured:
 To run P-Stream, ensure [Docker](https://docs.docker.com/engine/install) and Docker Compose are installed and run the following command:
 
 ```sh
-docker compose up --wait -d
+docker compose -f compose.yaml up --wait -d
 ```
 
 To stop it, run:
