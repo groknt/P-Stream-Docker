@@ -1,0 +1,4 @@
+[submodule "aio-proxy"]
+	path = aio-proxy
+	url = https://github.com/groknt/aio-proxy
+	branch = main

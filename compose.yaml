@@ -199,6 +199,7 @@ services:
       MAX_TRANSCODE_PER_IP: 4
       API_RATE_LIMIT: 240
       ENABLE_YTDLP: false
+      HW_ACCEL: off
     labels:
       traefik.enable: true
       traefik.http.middlewares.aio-proxy.stripprefix.prefixes: ${AIO_PROXY_PATH}

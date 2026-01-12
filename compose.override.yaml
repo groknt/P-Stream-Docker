@@ -1,10 +1,15 @@
 services:
   p-stream:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
+      context: ./
+      dockerfile: ./frontend/Dockerfile
 
   p-stream-backend:
     build:
       context: ./backend
+      dockerfile: Dockerfile
+
+  aio-proxy:
+    build:
+      context: ./aio-proxy
       dockerfile: Dockerfile
