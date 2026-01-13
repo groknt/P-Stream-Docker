@@ -85,7 +85,8 @@ export function useSkipTime() {
     };
 
     const fetchIntroDBTime = async (): Promise<number | null> => {
-      if (!meta?.imdbId || meta.type === "movie") return null;
+      if (conf().DISABLE_INTRODB || !meta?.imdbId || meta.type === "movie")
+        return null;
 
       try {
         const apiUrl = `${INTRODB_BASE_URL}?imdb_id=${meta.imdbId}&season=${meta.season?.number}&episode=${meta.episode?.number}`;

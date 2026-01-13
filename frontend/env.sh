@@ -13,6 +13,7 @@ HIDE_PROXY_ONBOARDING
 ALLOW_AUTOPLAY
 ALLOW_DEBRID_KEY
 ALLOW_FEBBOX_KEY
+DISABLE_INTRODB
 "
 
 echo "window.__CONFIG__ = {" > /usr/share/nginx/html/config.js

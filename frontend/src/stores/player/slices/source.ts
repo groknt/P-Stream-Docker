@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import { ScrapeMedia } from "@p-stream/providers";
 
+import { downloadCaption } from "@/backend/helpers/subs";
 import { MakeSlice } from "@/stores/player/slices/types";
 import {
   SourceQuality,
@@ -8,6 +9,8 @@ import {
   selectQuality,
 } from "@/stores/player/utils/qualities";
 import { useQualityStore } from "@/stores/quality";
+import googletranslate from "@/utils/translation/googletranslate";
+import { translate } from "@/utils/translation/index";
 import { ValuesOf } from "@/utils/typeguard";
 
 export const playerStatus = {
@@ -73,6 +76,16 @@ export interface AudioTrack {
   language: string;
 }
 
+export interface TranslateTask {
+  targetCaption: CaptionListItem;
+  fetchedTargetCaption?: Caption;
+  targetLanguage: string;
+  translatedCaption?: Caption;
+  done: boolean;
+  error: boolean;
+  cancel: () => void;
+}
+
 export interface SourceSlice {
   status: PlayerStatus;
   source: SourceSliceSource | null;
@@ -87,10 +100,12 @@ export interface SourceSlice {
   caption: {
     selected: Caption | null;
     asTrack: boolean;
+    translateTask: TranslateTask | null;
   };
   meta: PlayerMeta | null;
   failedSourcesPerMedia: Record<string, string[]>; // mediaKey -> array of failed sourceIds
   failedEmbedsPerMedia: Record<string, Record<string, string[]>>; // mediaKey -> sourceId -> array of failed embedIds
+  resumeFromSourceId: string | null;
   setStatus(status: PlayerStatus): void;
   setSource(
     stream: SourceSliceSource,
@@ -106,10 +121,16 @@ export interface SourceSlice {
   redisplaySource(startAt: number): void;
   setCaptionAsTrack(asTrack: boolean): void;
   addExternalSubtitles(): Promise<void>;
+  translateCaption(
+    targetCaption: CaptionListItem,
+    targetLanguage: string,
+  ): Promise<void>;
+  clearTranslateTask(): void;
   addFailedSource(sourceId: string): void;
   addFailedEmbed(sourceId: string, embedId: string): void;
   clearFailedSources(mediaKey?: string): void;
   clearFailedEmbeds(mediaKey?: string): void;
+  setResumeFromSourceId(sourceId: string | null): void;
   reset(): void;
 }
 
@@ -171,9 +192,11 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
   meta: null,
   failedSourcesPerMedia: {},
   failedEmbedsPerMedia: {},
+  resumeFromSourceId: null,
   caption: {
     selected: null,
     asTrack: false,
+    translateTask: null,
   },
   setSourceId(id) {
     set((s) => {
@@ -218,6 +241,14 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
   setCaption(caption) {
     const store = get();
     store.display?.setCaption(caption);
+    if (
+      !caption ||
+      (store.caption.translateTask &&
+        store.caption.translateTask.targetCaption.id !== caption?.id &&
+        store.caption.translateTask.translatedCaption?.id !== caption?.id)
+    ) {
+      store.clearTranslateTask();
+    }
     set((s) => {
       s.caption.selected = caption;
     });
@@ -359,6 +390,11 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       }
     });
   },
+  setResumeFromSourceId(sourceId: string | null) {
+    set((s) => {
+      s.resumeFromSourceId = sourceId;
+    });
+  },
   reset() {
     set((s) => {
       s.source = null;
@@ -374,9 +410,12 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       s.meta = null;
       s.failedSourcesPerMedia = {};
       s.failedEmbedsPerMedia = {};
+      s.resumeFromSourceId = null;
+      this.clearTranslateTask();
       s.caption = {
         selected: null,
         asTrack: false,
+        translateTask: null,
       };
     });
   },
@@ -410,6 +449,104 @@ export const createSourceSlice: MakeSlice<SourceSlice> = (set, get) => ({
       set((s) => {
         s.isLoadingExternalSubtitles = false;
       });
+    }
+  },
+
+  clearTranslateTask() {
+    set((s) => {
+      if (s.caption.translateTask) {
+        s.caption.translateTask.cancel();
+      }
+      s.caption.translateTask = null;
+    });
+  },
+
+  async translateCaption(
+    targetCaption: CaptionListItem,
+    targetLanguage: string,
+  ) {
+    let store = get();
+
+    if (store.caption.translateTask) {
+      console.warn("A translation task is already in progress");
+      return;
+    }
+
+    const abortController = new AbortController();
+
+    set((s) => {
+      s.caption.translateTask = {
+        targetCaption,
+        targetLanguage,
+        done: false,
+        error: false,
+        cancel() {
+          if (!this.done && !this.error) {
+            console.log("Translation task was cancelled");
+          }
+          abortController.abort();
+        },
+      };
+    });
+
+    function handleError(err: any) {
+      if (abortController.signal.aborted) {
+        return;
+      }
+      console.error("Translation task ran into an error", err);
+      set((s) => {
+        if (!s.caption.translateTask) return;
+        s.caption.translateTask.error = true;
+      });
+    }
+
+    try {
+      const srtData = await downloadCaption(targetCaption);
+      if (abortController.signal.aborted) {
+        return;
+      }
+      if (!srtData) {
+        throw new Error("Fetching failed");
+      }
+      set((s) => {
+        if (!s.caption.translateTask) return;
+        s.caption.translateTask.fetchedTargetCaption = {
+          id: targetCaption.id,
+          language: targetCaption.language,
+          srtData,
+        };
+      });
+      store = get();
+    } catch (err) {
+      handleError(err);
+      return;
+    }
+
+    try {
+      const result = await translate(
+        store.caption.translateTask!.fetchedTargetCaption!,
+        targetLanguage,
+        googletranslate,
+        abortController.signal,
+      );
+      if (abortController.signal.aborted) {
+        return;
+      }
+      if (!result) {
+        throw new Error("Translation failed");
+      }
+      set((s) => {
+        if (!s.caption.translateTask) return;
+        const translatedCaption: Caption = {
+          id: `${targetCaption.id}-translated-${targetLanguage}`,
+          language: targetLanguage,
+          srtData: result,
+        };
+        s.caption.translateTask.done = true;
+        s.caption.translateTask.translatedCaption = translatedCaption;
+      });
+    } catch (err) {
+      handleError(err);
     }
   },
 });

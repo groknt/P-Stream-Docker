@@ -25,6 +25,7 @@ interface Config {
   ALLOW_AUTOPLAY: boolean;
   ALLOW_FEBBOX_KEY: boolean;
   ALLOW_DEBRID_KEY: boolean;
+  DISABLE_INTRODB: boolean;
   SHOW_AD: boolean;
   AD_CONTENT_URL: string;
   TRACK_SCRIPT: string; // like <script src="https://umami.com/script.js"></script>
@@ -55,6 +56,7 @@ export interface RuntimeConfig {
   ONBOARDING_FIREFOX_EXTENSION_INSTALL_LINK: string | null;
   ONBOARDING_PROXY_INSTALL_LINK: string | null;
   ALLOW_FEBBOX_KEY: boolean;
+  DISABLE_INTRODB: boolean;
   SHOW_AD: boolean;
   AD_CONTENT_URL: string[];
   TRACK_SCRIPT: string | null;
@@ -87,6 +89,7 @@ const env: Record<keyof Config, undefined | string> = {
   ALLOW_AUTOPLAY: import.meta.env.VITE_ALLOW_AUTOPLAY,
   ALLOW_FEBBOX_KEY: import.meta.env.VITE_ALLOW_FEBBOX_KEY,
   ALLOW_DEBRID_KEY: import.meta.env.VITE_ALLOW_DEBRID_KEY,
+  DISABLE_INTRODB: import.meta.env.VITE_DISABLE_INTRODB,
   SHOW_AD: import.meta.env.VITE_SHOW_AD,
   AD_CONTENT_URL: import.meta.env.VITE_AD_CONTENT_URL,
   TRACK_SCRIPT: import.meta.env.VITE_TRACK_SCRIPT,
@@ -172,6 +175,7 @@ export function conf(): RuntimeConfig {
       .filter((v) => v.length === 2), // The format is <beforeA>:<afterA>,<beforeB>:<afterB>
     ALLOW_FEBBOX_KEY: getKey("ALLOW_FEBBOX_KEY", "false") === "true",
     ALLOW_DEBRID_KEY: getKey("ALLOW_DEBRID_KEY", "false") === "true",
+    DISABLE_INTRODB: getKey("DISABLE_INTRODB", "false") === "true",
     SHOW_AD: getKey("SHOW_AD", "false") === "true",
     AD_CONTENT_URL: getKey("AD_CONTENT_URL", "")
       .split(",")

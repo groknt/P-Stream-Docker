@@ -818,7 +818,7 @@
         },
         "title": "Sources",
         "unknownOption": "Unknown",
-        "editOrder": "Edit order"
+        "findNextSource": "Find next source"
       },
       "subtitles": {
         "customChoice": "Drop or upload file",
@@ -850,7 +850,10 @@
         "useNativeSubtitles": "Native video subtitles",
         "useNativeSubtitlesDescription": "Broadcast subtitles for native fullscreen and PiP",
         "delayLate": "Heard audio",
-        "delayEarly": "Saw caption"
+        "delayEarly": "Saw caption",
+        "translate": {
+          "title": "Translate from {{language}}"
+        }
       },
       "watchparty": {
         "watchpartyItem": "Watch Party",
