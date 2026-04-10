@@ -2,7 +2,7 @@
 
 ## Pre-configured all-in-one docker compose configuration for P-Stream.
 
-> **For an optimal experience,** install the [P-Stream Userscript](https://github.com/groknt/P-Stream-Userscript) **or** the [P-Stream Extension](https://docs.pstream.mov/extension).
+> **For an optimal experience,** install the [P-Stream Userscript](https://github.com/groknt/P-Stream-Userscript)
 
 The following services are included and configured:
 
