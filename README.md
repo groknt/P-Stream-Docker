@@ -2,11 +2,11 @@
 
 ## Pre-configured all-in-one docker compose configuration for P-Stream.
 
-> **For an optimal experience,** install the [P-Stream Userscript](https://github.com/groknt/P-Stream-Userscript)
+> **For an optimal experience,** install the [P-Stream Userscript](https://github.com/groknt/P-Stream-Userscript).
 
 The following services are included and configured:
 
-- [Frontend](./frontend), dependant on [Providers](./providers)
+- [Frontend](./frontend), dependent on [Providers](./providers)
 - [Backend](./backend) + Postgres Database
 - [AIO Proxy](https://github.com/groknt/AIO-Proxy)
 - Traefik Reverse Proxy
